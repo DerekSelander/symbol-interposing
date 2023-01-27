@@ -959,7 +959,7 @@ typedef struct {
 #define S_USER                  ((uint32_t)(2u << 1))
 #define BCR_ENABLE              ((uint32_t)(1u))
 #define SS_ENABLE               ((uint32_t)(1u))
-#define BCR_BAS                 ((uint32_t)(15u << 4))
+#define BCR_BAS                 ((uint32_t)(15u << 5))
 
 static mach_port_t exc_port = MACH_PORT_NULL;
 static uintptr_t main_addr = 0;
