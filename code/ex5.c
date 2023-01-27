@@ -1,5 +1,5 @@
 // ex5.c 
-// xcrun -sdk macosx clang -arch arm64 ex5.c -o /tmp/ex5 -O3  -mmacosx-version-min=12.6 -Wl,-no_function_starts -fstack-protector-all && strip ex5 #2
+// xcrun -sdk macosx clang -arch arm64 ex5.c -o /tmp/ex5 -O3  -mmacosx-version-min=12.6 -Wl,-no_function_starts -fstack-protector-all && strip /tmp/ex5 #2
 
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #include <stdio.h>

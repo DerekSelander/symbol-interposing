@@ -49,6 +49,7 @@ typedef struct {
 #define S_USER                  ((uint32_t)(2u << 1))
 #define BCR_ENABLE              ((uint32_t)(1u))
 #define SS_ENABLE               ((uint32_t)(1u))
+#define BCR_BAS                 ((uint32_t)(15u << 4))
 
 static mach_port_t exc_port = MACH_PORT_NULL;
 static uintptr_t main_addr = 0;
@@ -85,7 +86,7 @@ __attribute__((constructor)) static void oninit() {
     mach_msg_type_number_t cnt = ARM_DEBUG_STATE64_COUNT;
     HANDLE_ERR(thread_get_state(mach_thread_self(), ARM_DEBUG_STATE64, (thread_state_t)&dbg, &cnt));
     dbg.__bvr[0] = (__int64_t)main_addr;
-    dbg.__bcr[0] = S_USER|BCR_ENABLE;
+    dbg.__bcr[0] = S_USER|BCR_ENABLE|BCR_BAS;
     HANDLE_ERR(thread_set_state(mach_thread_self(), ARM_DEBUG_STATE64, (thread_state_t)&dbg, cnt));
 
     printf("Breakpoint set on main 0x%012lx (offset 0x%06lx)\n", main_addr, main_addr - (uintptr_t)&_mh_execute_header);
@@ -144,9 +145,9 @@ void* server_thread(void *arg) {
         HANDLE_ERR(thread_get_state(thread, ARM_DEBUG_STATE64, (thread_state_t)&dbg, &dbg_cnt));
 
         if (!success) {
-            dbg.__mdscr_el1 |= SS_ENABLE; // enables instruction single step
-            dbg.__bcr[0] = 0;
-            dbg.__bvr[0] = 0;
+            dbg.__mdscr_el1 |= SS_ENABLE;  // enables instruction single step
+            dbg.__bcr[0] &= ~(BCR_ENABLE); // disable software breakpoint
+            dbg.__bvr[0] = 0;              // superfluous but shows register isn't used
             HANDLE_ERR(thread_set_state(thread, ARM_DEBUG_STATE64, (thread_state_t)&dbg, ARM_DEBUG_STATE64_COUNT));
         }
 

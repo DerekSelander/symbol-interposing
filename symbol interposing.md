@@ -4,7 +4,9 @@ Let's play a game: A series of code snippets and how they are compiled will be p
 
 For these challenges, all executables are compiled and run on an Apple macOS Monterey operating system with hardware capable of running ARM64/ARM64e. Since Apple is transitioning away from Intel in their device lineup, only ARM64 & ARM64e will be covered. clang-1400.0.29.102 is used for all examples and was tested on a macOS 12.6 M1 machine.
 
-This writeup assumes you have an understanding of the C language as well several Apple concepts. If you're unfamiliar with Mach-O load commands and the symbol table, you're encouraged to read about those first by [googling](https://www.google.com/search?q=macho+load+commands) or looking up the [&lt;mach-o/loader.h&gt;](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h) & [&lt;mach-o/nlist.h&gt;](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/nlist.h) headers. **No Objective-C/Swift swizzling is covered here. That story has been so done already**
+This writeup assumes you have an understanding of the C language as well several Apple concepts. If you're unfamiliar with Mach-O load commands and the symbol table, you're encouraged to read about those first by [googling](https://www.google.com/search?q=macho+load+commands) or looking up the [&lt;mach-o/loader.h&gt;](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h) & [&lt;mach-o/nlist.h&gt;](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/nlist.h) headers.
+
+> **Note:** This writeup is consciously skipping any Objective-C of Swift swizzling as that concept has been thoroughly documented across the internet. However, there are applicable tricks that are discussed (i.e. `__builtin_return_address`) that could be useful for your swizzling endeavors.  
 
 Sounds good? Game on? 
 
@@ -125,7 +127,7 @@ int main(int argc, const char* argv[]) {
 **Assessment** It looks like the authors caught on to how trivial it is to directly call the `do_the_thing()` function and have added a `static` declaration to `do_the_thing()`. This is the only change between `ex1.c` and `ex2.c`. This makes it so `do_the_thing()` is not a globally exported symbol and can not be directly referenced by other images. If this code were to run with the previous solution, the following crash would occur:
 
 ```bash
-~ xcrun -sdk macosx clang -arch arm64 ex2.c -o /tmp/ex2 -O0 -mmacosx-version-min=12.6 -Wno-deprecated-declarations
+~ xcrun -sdk macosx clang -arch arm64 ex2.c -o /tmp/ex2 -O0 -mmacosx-version-min=12.6
 
 ~ DYLD_INSERT_LIBRARIES=/tmp/solution1.dylib /tmp/ex2
 dyld[14227]: symbol not found in flat namespace (_do_the_thing)
@@ -246,7 +248,7 @@ int main(int argc, const char* argv[]) {
 Compile and dump the potential options for interposing symbols on `ex3`:
 
 ```bash
-~ xcrun -sdk macosx clang -arch arm64 ex3.c -o /tmp/ex3 -O0 -mmacosx-version-min=12.6 -Wno-deprecated-declarations -Wl,-interposable
+~ xcrun -sdk macosx clang -arch arm64 ex3.c -o /tmp/ex3 -O0 -mmacosx-version-min=12.6 -Wl,-interposable
 ~ nm /tmp/ex3 -Ug
 0000000100000000 T __mh_execute_header
 0000000100008000 D _g_secret
@@ -265,7 +267,7 @@ Public solutions exist to interpose symbols on a per image basis. One of the mor
 Compile `ex3.c`'s source with ld's `-interposable` option.
 
 ```bash
-~ xcrun -sdk macosx clang -arch arm64 ex3.c -o /tmp/ex3 -O0 -mmacosx-version-min=12.6 -Wno-deprecated-declarations -Wl,-interposable
+~ xcrun -sdk macosx clang -arch arm64 ex3.c -o /tmp/ex3 -O0 -mmacosx-version-min=12.6 -Wl,-interposable
 ```
 
 Then run Apple's preferred debugger, `lldb`, on the `ex3` executable:
@@ -804,7 +806,7 @@ interposed security_check! returning success
 
 ```c
 // ex5.c 
-// xcrun -sdk macosx clang -arch arm64 ex5.c -o /tmp/ex5 -O3  -mmacosx-version-min=12.6 -Wl,-no_function_starts -fstack-protector-all && strip ex5 #2
+// xcrun -sdk macosx clang -arch arm64 ex5.c -o /tmp/ex5 -O3  -mmacosx-version-min=12.6 -Wl,-no_function_starts -fstack-protector-all && strip /tmp/ex5 #2
 
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #include <stdio.h>
@@ -842,7 +844,7 @@ int main(int argc, const char* argv[]) {
 
 It's best to see what is under the hood. Compile and dump the assembly for `ex5`:
 ```asm
-~ xcrun -sdk macosx clang -arch arm64 ex5.c -o /tmp/ex5 -O3  -mmacosx-version-min=12.6 -Wno-deprecated-declarations -Wl,-no_function_starts -fstack-protector-all && strip ex5
+~ xcrun -sdk macosx clang -arch arm64 ex5.c -o /tmp/ex5 -O3  -mmacosx-version-min=12.6 -Wl,-no_function_starts -fstack-protector-all && strip /tmp/ex5
 ~ otool -tV /tmp/ex5
 ex5:
 (__TEXT,__text) section
@@ -855,43 +857,43 @@ ex5:
         0000000100003ec0     ldr     x8, [x8]
         0000000100003ec4     str     x8, [sp, #0x18]
         0000000100003ec8     cmp     w0, #0x1
-        0000000100003ecc     b.le     0x100003f30
+        0000000100003ecc     b.le    0x100003f30
         0000000100003ed0     ldr     x19, [x1, #0x8]
         0000000100003ed4     cbz     x19, 0x100003f30
         0000000100003ed8     mov     x0, x19
-1 ->    0000000100003edc     bl     0x100003f84 ; symbol stub for: _strlen
+1 ->    0000000100003edc     bl      0x100003f84 ; symbol stub for: _strlen
         0000000100003ee0     mov     x1, x0
         0000000100003ee4     add     x2, sp, #0x8
         0000000100003ee8     mov     x0, x19
-1 ->    0000000100003eec     bl     0x100003f60 ; symbol stub for: _CC_MD5
+1 ->    0000000100003eec     bl      0x100003f60 ; symbol stub for: _CC_MD5
         0000000100003ef0     mov     x8, #0x4d5f
-        0000000100003ef4     movk     x8, #0x3bcc, lsl #16
-        0000000100003ef8     movk     x8, #0xa75a, lsl #32
-        0000000100003efc     movk     x8, #0xd665, lsl #48
+        0000000100003ef4     movk    x8, #0x3bcc, lsl #16
+        0000000100003ef8     movk    x8, #0xa75a, lsl #32
+        0000000100003efc     movk    x8, #0xd665, lsl #48
         0000000100003f00     ldp     x9, x10, [sp, #0x8]
         0000000100003f04     eor     x8, x9, x8
         0000000100003f08     mov     x9, #0x831d
-        0000000100003f0c     movk     x9, #0xde27, lsl #16
-        0000000100003f10     movk     x9, #0x82b8, lsl #32
-        0000000100003f14     movk     x9, #0x99cf, lsl #48
+        0000000100003f0c     movk    x9, #0xde27, lsl #16
+        0000000100003f10     movk    x9, #0x82b8, lsl #32
+        0000000100003f14     movk    x9, #0x99cf, lsl #48
         0000000100003f18     eor     x9, x10, x9
         0000000100003f1c     orr     x8, x8, x9
-2 ->    0000000100003f20     cbnz     x8, 0x100003f30
+2 ->    0000000100003f20     cbnz    x8, 0x100003f30
         0000000100003f24     adr     x0, #0x7c ; literal pool for: "\360\237\214\210success!\360\237\214\210"
         0000000100003f28     nop
-        0000000100003f2c     bl     0x100003f78 ; symbol stub for: _puts
+        0000000100003f2c     bl      0x100003f78 ; symbol stub for: _puts
 3 ->    0000000100003f30     ldr     x8, [sp, #0x18]
         0000000100003f34     nop
         0000000100003f38     ldr     x9, #0xd8 ; literal pool symbol address: ___stack_chk_guard
         0000000100003f3c     ldr     x9, [x9]
         0000000100003f40     cmp     x9, x8
-        0000000100003f44     b.ne     0x100003f5c
+        0000000100003f44     b.ne    0x100003f5c
         0000000100003f48     mov     w0, #0x0
         0000000100003f4c     ldp     x29, x30, [sp, #0x30]
         0000000100003f50     ldp     x20, x19, [sp, #0x20]
         0000000100003f54     add     sp, sp, #0x40
         0000000100003f58     ret
-        0000000100003f5c     bl     0x100003f6c ; symbol stub for: ___stack_chk_fail
+        0000000100003f5c     bl      0x100003f6c ; symbol stub for: ___stack_chk_fail
 ```
 
 From the above assembly and the given challenges of returning without error and being unable to interpose symbols nor modify executable memory, three ideas stand out which are highlighted with arrows.
@@ -957,6 +959,7 @@ typedef struct {
 #define S_USER                  ((uint32_t)(2u << 1))
 #define BCR_ENABLE              ((uint32_t)(1u))
 #define SS_ENABLE               ((uint32_t)(1u))
+#define BCR_BAS                 ((uint32_t)(15u << 4))
 
 static mach_port_t exc_port = MACH_PORT_NULL;
 static uintptr_t main_addr = 0;
@@ -993,7 +996,7 @@ __attribute__((constructor)) static void oninit() {
     mach_msg_type_number_t cnt = ARM_DEBUG_STATE64_COUNT;
     HANDLE_ERR(thread_get_state(mach_thread_self(), ARM_DEBUG_STATE64, (thread_state_t)&dbg, &cnt));
     dbg.__bvr[0] = (__int64_t)main_addr;
-    dbg.__bcr[0] = S_USER|BCR_ENABLE;
+    dbg.__bcr[0] = S_USER|BCR_ENABLE|BCR_BAS;
     HANDLE_ERR(thread_set_state(mach_thread_self(), ARM_DEBUG_STATE64, (thread_state_t)&dbg, cnt));
 
     printf("Breakpoint set on main 0x%012lx (offset 0x%06lx)\n", main_addr, main_addr - (uintptr_t)&_mh_execute_header);
@@ -1067,9 +1070,9 @@ void* server_thread(void *arg) {
         HANDLE_ERR(thread_get_state(thread, ARM_DEBUG_STATE64, (thread_state_t)&dbg, &dbg_cnt));
         
         if (!success) {
-            dbg.__mdscr_el1 |= SS_ENABLE; // enables instruction single step
-            dbg.__bcr[0] = 0;
-            dbg.__bvr[0] = 0;
+            dbg.__mdscr_el1 |= SS_ENABLE;  // enables instruction single step
+            dbg.__bcr[0] &= ~(BCR_ENABLE); // disable software breakpoint
+            dbg.__bvr[0] = 0;              // superfluous but shows register isn't used
             HANDLE_ERR(thread_set_state(thread, ARM_DEBUG_STATE64, (thread_state_t)&dbg, ARM_DEBUG_STATE64_COUNT));
         }
 
