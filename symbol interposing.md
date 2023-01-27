@@ -4,7 +4,7 @@ Let's play a game: A series of code snippets and how they are compiled will be p
 
 For these challenges, all executables are compiled and run on an Apple macOS Monterey operating system with hardware capable of running ARM64/ARM64e. Since Apple is transitioning away from Intel in their device lineup, only ARM64 & ARM64e will be covered. clang-1400.0.29.102 is used for all examples and was tested on a macOS 12.6 M1 machine.
 
-This writeup assumes you have an understanding of the C language as well several Apple concepts. If you're unfamiliar with Mach-O load commands and the symbol table, you're encouraged to read about those first by [googling](https://www.google.com/search?q=macho+load+commands) or looking up the [&lt;mach-o/loader.h&gt;](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h) & [&lt;mach-o/nlist.h&gt;](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/nlist.h) headers.
+This writeup assumes you have an understanding of the C language as well several Apple concepts. If you're unfamiliar with Mach-O load commands and the symbol table, you're encouraged to read about those first by [googling](https://www.google.com/search?q=macho+load+commands) or looking up the [&lt;mach-o/loader.h&gt;](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h) & [&lt;mach-o/nlist.h&gt;](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/nlist.h) headers. **No Objective-C/Swift swizzling is covered here. That story has been so done already**
 
 Sounds good? Game on? 
 
