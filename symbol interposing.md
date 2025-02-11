@@ -1,4 +1,5 @@
 > **NOTE:** At some point Apple being the party poopers that they are, slapped entitlement restrictions on the `thread_set_state(...)` API making it no longer usable in normal macOS machines (short of adding Apple entitlements and telling AMFI to get our of the way). This blocks my writeup's technique to create a breakpoint, but you can still get around this via the `[mach_]vm_protect()` APIs and making a breakpoint. This technique would require the process to be debugged, or not codesigned, or having something along the lines of `com.apple.security.cs.disable-executable-page-protection` (macOS) to create a breakpoint and modify executable code (like what lldb does). Maybe I'll update this one day...
+
 > **NOTE2:** In addition, around ~iOS 16 (maybe earlier), Apple made the `__DATA_CONST` actually constant once it is bound and write access is removed. One cannot make it writable again, unless you modify the `dyld_flags` via a boot-arg. Check out `forceRWDataConst          :  1,     // dyld_flags=0x00200000` in DyldDelegates.h in the dyld project
 
 
